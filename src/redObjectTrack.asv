@@ -1,0 +1,128 @@
+clc;
+clear all;
+close all;
+input1 = videoinput('winvideo',1,'YUY2_320x240');
+set(input1,'ReturnedColorSpace', 'rgb');
+preview(input1);
+pause(5);
+data = getsnapshot(input1);
+    closepreview(input1);
+    diff_im = imsubtract(data(:,:,1), rgb2gray(data));
+    diff_im = medfilt2(diff_im, [3 3]);
+   diff_im = im2bw(diff_im,0.18);
+   diff_im = bwareaopen(diff_im,300);
+    bw = bwlabel(diff_im, 8);
+   stats = regionprops(bw, 'BoundingBox', 'Centroid');
+    imshow(data)
+    hold on
+    for object = 1:length(stats)
+        bb = stats(object).BoundingBox;
+bc = stats(object).Centroid;
+   a=  rectangle('Position',bb,'EdgeColor','r','LineWidth',2);
+    i1=imcrop(data,a);
+    figure,imshow(i1)
+    
+     end
+    hold off
+se=strel('disk',1);
+gi=imdilate(i1,se); 
+figure,imshow(gi)
+ge=imerode(i1,se);
+gdiff=imsubtract(gi,ge); 
+gdiff=mat2gray(gdiff); 
+gdiff=conv2(gdiff,[1 1;1 1]); 
+gdiff=imadjust(gdiff,[0.5 0.7],[0 1],0.1);
+B=logical(gdiff); 
+% figure,imshow(B)
+er=imerode(B,strel('line',50,0));
+out1=imsubtract(B,er);
+figure,imshow(out1)
+F=imfill(out1,'holes');
+H=bwmorph(F,'thin',1);
+% figure,imshow(H)
+H=imerode(H,strel('line',3,90));
+final=bwareaopen(H,100);
+% figure,imshow(final)
+[m1 m2]=size(final);
+for i=1:m1
+for j=1:m2
+if final(i,j)==1
+    new(i,j)=g(i,j);
+else 
+    new(i,j)=0;
+end
+end
+end
+figure,imshow(new,[])
+[maskout,mu]=k_means(new,5);
+figure,imshow(maskout,[])
+[m n]=size(maskout);
+for i=1:m;
+    for j=1:n;
+        if maskout(i,j)==2||maskout(i,j)==5
+            new1(i,j)=1;
+        else
+            new1(i,j)=0;
+        end
+    end
+end
+% figure,imshow(new1,[])
+e=imerode(new1,se);
+% figure,imshow(e)
+cc=bwconncomp(e,4);
+[cc1 nn]=bwlabel(e);
+text(cc.PixelIdxList{50}) = true;
+textdata=regionprops(cc1,'basic');
+gio1=zeros(m,n);
+for ii=1:length(textdata)
+newn(ii,1)=(textdata(ii).Area);
+end
+for ii=1:length(newn)
+    if newn(ii,1)>90 
+    out=cc1==ii;
+    gio1=gio1+out;
+    end
+end
+ figure,imshow(gio1,[])
+for i=1:m1
+for j=1:m2
+if gio1(i,j)==1
+    out2(i,j)=g(i,j);
+else 
+    out2(i,j)=0;
+end
+end
+end
+% figure,imshow(out2,[])
+[m n]=size(out2);
+for i=1:m
+    for j=1:n
+       if out2(i,j)>5 && out2(i,j)<218
+  text1(i,j)=1;
+else
+   text1(i,j)=0;
+       end
+    end
+end
+
+[cc1 nn]=bwlabel(text1);
+
+textdata1=regionprops(cc1,'basic');
+gio1=zeros(m,n);
+for ii=1:length(textdata1)
+newn1(ii,1)=(textdata1(ii).Area);
+end
+kk=1;
+for ii=1:length(newn1)-1
+    if newn1(ii,1)>60 
+    out=cc1==ii;
+    gio1=gio1+out;
+    aa1=newn1(ii,1);
+    templ{kk,1}=out;
+    kk=kk+1;
+    end
+end
+% % figure,imshow(gio1,[])
+
+
+
